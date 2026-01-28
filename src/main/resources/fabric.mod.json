@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "keepalive",
+  "version": "${version}",
+  "name": "KeepAlive",
+  "description": "Keep player's connections alive on restart by transferring them to a PicoLimbo server.",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "codes.caden.keepalive.KeepAlive"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
