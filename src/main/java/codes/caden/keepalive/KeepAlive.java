@@ -41,7 +41,7 @@ public class KeepAlive implements ModInitializer {
 
         if (config == null) {
             LOGGER.info("Creating new config file");
-            config = new Config();
+            config = Config.DEFAULT;
             writeConfig();
         }
 
