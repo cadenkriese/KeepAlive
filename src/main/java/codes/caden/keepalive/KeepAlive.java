@@ -5,11 +5,12 @@ import codes.caden.keepalive.config.ServerAddress;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import it.unimi.dsi.fastutil.bytes.ByteArrays;
+import io.netty.buffer.Unpooled;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.common.ServerTransferS2CPacket;
 import net.minecraft.network.packet.s2c.common.StoreCookieS2CPacket;
 import net.minecraft.util.Identifier;
@@ -56,11 +57,14 @@ public class KeepAlive implements ModInitializer {
             destinationServerCompound.putString("host", destinationServerAddress.hostname);
             destinationServerCompound.putInt("port", destinationServerAddress.port);
 
+            PacketByteBuf packetByteBuf = new PacketByteBuf(Unpooled.buffer());
+            packetByteBuf.writeNbt(destinationServerCompound);
+
             LOGGER.debug("Destination cookie payload: {}", NbtHelper.toFormattedString(destinationServerCompound));
 
             StoreCookieS2CPacket cookiePayload = new StoreCookieS2CPacket(
                     INTENT,
-                    destinationServerCompound.asByteArray().orElse(ByteArrays.EMPTY_ARRAY)
+                    packetByteBuf.array()
             );
             ServerTransferS2CPacket transferPayload = new ServerTransferS2CPacket(
                     limboServerAddress.hostname, limboServerAddress.port
