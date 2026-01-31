@@ -58,6 +58,7 @@ public class KeepAlive implements ModInitializer {
                 if (context.getSource().isExecutedByPlayer()) {
                     ServerPlayerEntity player = context.getSource().getPlayer();
                     if (player != null) {
+                        sendDestinationCookie(Collections.singleton(player));
                         transferToDestination(Collections.singleton(player));
                     }
                 }
@@ -75,17 +76,21 @@ public class KeepAlive implements ModInitializer {
 
     private void sendDestinationCookie(Collection<ServerPlayerEntity> players) {
         ServerAddress destinationServerAddress = config.destinationServer;
+
         NbtCompound destinationServerCompound = new NbtCompound();
         destinationServerCompound.putString("host", destinationServerAddress.hostname);
         destinationServerCompound.putInt("port", destinationServerAddress.port);
+
         PacketByteBuf packetByteBuf = new PacketByteBuf(Unpooled.buffer());
         packetByteBuf.writeNbt(destinationServerCompound);
+        byte[] payloadBytes = new byte[packetByteBuf.readableBytes()];
+        packetByteBuf.readBytes(payloadBytes);
 
         LOGGER.debug("Destination cookie payload: {}", destinationServerCompound.toString());
 
         StoreCookieS2CPacket cookiePayload = new StoreCookieS2CPacket(
                 INTENT,
-                packetByteBuf.array()
+                payloadBytes
         );
 
         players.forEach(player -> player.networkHandler.sendPacket(cookiePayload));
