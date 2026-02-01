@@ -7,16 +7,16 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import io.netty.buffer.Unpooled;
 import net.fabricmc.api.ModInitializer;
-import static net.minecraft.server.command.CommandManager.*;
+import static net.minecraft.commands.Commands.*;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.packet.s2c.common.ServerTransferS2CPacket;
-import net.minecraft.network.packet.s2c.common.StoreCookieS2CPacket;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.protocol.common.ClientboundTransferPacket;
+import net.minecraft.network.protocol.common.ClientboundStoreCookiePacket;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -33,7 +33,7 @@ public class KeepAlive implements ModInitializer {
     protected final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     public Config config;
 
-    final Identifier INTENT = Identifier.of("pico_limbo", "destination");
+    final Identifier INTENT = Identifier.fromNamespaceAndPath("pico_limbo", "destination");
 
     @Override
     public void onInitialize() {
@@ -55,8 +55,8 @@ public class KeepAlive implements ModInitializer {
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
             CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment)
                     -> dispatcher.register(literal("test_transfer").executes(context -> {
-                if (context.getSource().isExecutedByPlayer()) {
-                    ServerPlayerEntity player = context.getSource().getPlayer();
+                if (context.getSource().isPlayer()) {
+                    ServerPlayer player = context.getSource().getPlayer();
 
                     if (player == null) {
                         LOGGER.warn("Only players can execute /test_transfer");
@@ -72,35 +72,35 @@ public class KeepAlive implements ModInitializer {
         }
 
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
-            List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
+            List<ServerPlayer> players = server.getPlayerList().getPlayers();
             sendDestinationCookie(players);
             transferToDestination(players);
         });
     }
 
-    private void sendDestinationCookie(Collection<ServerPlayerEntity> players) {
+    private void sendDestinationCookie(Collection<ServerPlayer> players) {
         ServerAddress destinationServerAddress = config.destinationServer;
 
-        NbtCompound destinationServerCompound = new NbtCompound();
+        CompoundTag destinationServerCompound = new CompoundTag();
         destinationServerCompound.putString("host", destinationServerAddress.hostname);
         destinationServerCompound.putInt("port", destinationServerAddress.port);
 
-        PacketByteBuf packetByteBuf = new PacketByteBuf(Unpooled.buffer());
+        FriendlyByteBuf packetByteBuf = new FriendlyByteBuf(Unpooled.buffer());
         packetByteBuf.writeNbt(destinationServerCompound);
         byte[] payloadBytes = new byte[packetByteBuf.readableBytes()];
         packetByteBuf.readBytes(payloadBytes);
 
         LOGGER.debug("Destination cookie payload: {}", destinationServerCompound.toString());
 
-        StoreCookieS2CPacket cookiePayload = new StoreCookieS2CPacket(
+        ClientboundStoreCookiePacket cookiePayload = new ClientboundStoreCookiePacket(
                 INTENT,
                 payloadBytes
         );
 
-        players.forEach(player -> player.networkHandler.sendPacket(cookiePayload));
+        players.forEach(player -> player.connection.send(cookiePayload));
     }
 
-    private void transferToDestination(Collection<ServerPlayerEntity> players) {
+    private void transferToDestination(Collection<ServerPlayer> players) {
         if (players.isEmpty()) {
             return;
         }
@@ -109,11 +109,11 @@ public class KeepAlive implements ModInitializer {
 
         LOGGER.info("Transferring players to {}:{}", limboServerAddress.hostname, limboServerAddress.port);
 
-        ServerTransferS2CPacket transferPayload = new ServerTransferS2CPacket(
+        ClientboundTransferPacket transferPayload = new ClientboundTransferPacket(
                 limboServerAddress.hostname, limboServerAddress.port
         );
 
-        players.forEach(player -> player.networkHandler.sendPacket(transferPayload));
+        players.forEach(player -> player.connection.send(transferPayload));
     }
 
     public void writeConfig() {
