@@ -57,13 +57,17 @@ public class KeepAlive implements ModInitializer {
                     -> dispatcher.register(literal("test_transfer").executes(context -> {
                 if (context.getSource().isExecutedByPlayer()) {
                     ServerPlayerEntity player = context.getSource().getPlayer();
-                    if (player != null) {
-                        sendDestinationCookie(Collections.singleton(player));
-                        transferToDestination(Collections.singleton(player));
+
+                    if (player == null) {
+                        LOGGER.warn("Only players can execute /test_transfer");
+                        return 0;
                     }
+
+                    sendDestinationCookie(Collections.singleton(player));
+                    transferToDestination(Collections.singleton(player));
                 }
 
-                return 1;
+                    return 1;
             })));
         }
 
@@ -97,6 +101,10 @@ public class KeepAlive implements ModInitializer {
     }
 
     private void transferToDestination(Collection<ServerPlayerEntity> players) {
+        if (players.isEmpty()) {
+            return;
+        }
+
         ServerAddress limboServerAddress = config.limboServer;
 
         LOGGER.info("Transferring players to {}:{}", limboServerAddress.hostname, limboServerAddress.port);
