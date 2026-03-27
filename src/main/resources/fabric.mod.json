@@ -2,10 +2,12 @@
   "schemaVersion": 1,
   "id": "keepalive",
   "version": "${version}",
-  "name": "KeepAlive",
+  "name": "Keep Alive",
   "description": "Keep player's connections alive on restart by transferring them to a PicoLimbo server.",
   "authors": [],
-  "contact": {},
+  "contact": {
+    "sources": "https://github.com/cadenkriese/keepalive"
+  },
   "license": "MIT",
   "environment": "server",
   "entrypoints": {
@@ -14,8 +16,9 @@
     ]
   },
   "depends": {
-    "fabricloader": ">=${loader_version}",
-    "fabric-api": "*",
-    "minecraft": "${minecraft_version}"
+    "fabricloader": ">=0.18.5",
+    "minecraft": "~26.1",
+    "java": ">=25",
+    "fabric-api": "*"
   }
 }

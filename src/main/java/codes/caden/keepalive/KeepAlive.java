@@ -53,7 +53,7 @@ public class KeepAlive implements ModInitializer {
         }
 
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
-            CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment)
+            CommandRegistrationCallback.EVENT.register((dispatcher, _, _)
                     -> dispatcher.register(literal("test_transfer").executes(context -> {
                 if (context.getSource().isPlayer()) {
                     ServerPlayer player = context.getSource().getPlayer();
